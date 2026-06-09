@@ -25,8 +25,9 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const parsed = draftSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid data" }, { status: 400 });
+  const userId = session.user.id as string;
   const draft = await prisma.draft.create({
-    data: { userId: session.user.id, ...Object.fromEntries(Object.entries(parsed.data).map(([k, v]) => [k, Array.isArray(v) ? JSON.stringify(v) : v])) },
+    data: { userId, ...Object.fromEntries(Object.entries(parsed.data).map(([k, v]) => [k, Array.isArray(v) ? JSON.stringify(v) : v])) },
   });
   return NextResponse.json(draft);
 }
