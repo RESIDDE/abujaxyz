@@ -42,7 +42,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (!isSuperAdmin(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   // Prevent deleting yourself
-  if (params.id === session!.user.id) {
+  if (params.id === session?.user?.id) {
     return NextResponse.json({ error: "Cannot delete your own account" }, { status: 400 });
   }
 
