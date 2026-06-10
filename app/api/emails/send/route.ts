@@ -64,10 +64,16 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    console.log("Sending email from:", `${user.name} <${user.email}>`);
+    // Resend requires the `from` domain to be verified. We use a system address
+    // on the verified domain and set replyTo so replies go back to the real sender.
+    const emailDomain = process.env.EMAIL_DOMAIN || "lekksideexpo.com";
+    const systemFrom = `${user.name} <noreply@${emailDomain}>`;
+    console.log("Sending email from:", systemFrom, "replyTo:", user.email);
+
     // Send via Resend
     const result = await resend.emails.send({
-      from: `${user.name} <${user.email}>`,
+      from: systemFrom,
+      reply_to: `${user.name} <${user.email}>`,
       to,
       cc: cc.length ? cc : undefined,
       bcc: bcc.length ? bcc : undefined,
@@ -129,7 +135,7 @@ export async function POST(req: NextRequest) {
       .from('User')
       .select('id, email')
       .in('email', allRecipients)
-      .eq('isActive', true);
+      .neq('isActive', false); // include null (newly created users) and true
 
     if (internalUsers && internalUsers.length > 0) {
       const internalInserts = internalUsers.map(internalUser => ({
