@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { format, isToday, isYesterday } from "date-fns";
+import { Inbox, Send, FileText, Trash2, Star, Search, Paperclip, MailX } from "lucide-react";
 
 interface Email {
   id: string;
@@ -95,8 +96,8 @@ export default function EmailList({
     INBOX: "Inbox", SENT: "Sent", DRAFT: "Drafts", TRASH: "Trash", STARRED: "Starred",
   };
 
-  const folderIcons: Record<string, string> = {
-    INBOX: "📥", SENT: "📤", DRAFT: "📝", TRASH: "🗑️", STARRED: "⭐",
+  const folderIcons: Record<string, any> = {
+    INBOX: <Inbox size={18} />, SENT: <Send size={18} />, DRAFT: <FileText size={18} />, TRASH: <Trash2 size={18} />, STARRED: <Star size={18} />,
   };
 
   return (
@@ -105,7 +106,7 @@ export default function EmailList({
       <div className="panel-header">
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 18 }}>{folderIcons[folder] || "📁"}</span>
+            <span style={{ display: "flex", alignItems: "center" }}>{folderIcons[folder] || <Inbox size={18} />}</span>
             <span className="panel-title">{folderLabels[folder] || folder}</span>
           </div>
           <div className="panel-subtitle">
@@ -116,10 +117,7 @@ export default function EmailList({
 
       {/* Search */}
       <div className="search-bar">
-        <svg className="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-            d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-        </svg>
+        <Search className="search-icon" size={15} />
         <input
           id="email-search"
           type="text"
@@ -148,8 +146,8 @@ export default function EmailList({
             padding: "60px 20px", textAlign: "center",
             color: "var(--text-muted)", fontSize: 13,
           }}>
-            <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.4 }}>
-              {folderIcons[folder] || "📭"}
+            <div style={{ marginBottom: 12, opacity: 0.4, display: "flex", justifyContent: "center", transform: "scale(2.2)" }}>
+              {folderIcons[folder] || <MailX size={18} />}
             </div>
             <div style={{ fontWeight: 500, color: "var(--text-secondary)", marginBottom: 4 }}>
               No emails here
@@ -179,10 +177,10 @@ export default function EmailList({
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 {email.isStarred && (
-                  <span style={{ fontSize: 11, color: "var(--warning)" }}>⭐</span>
+                  <Star size={12} fill="var(--warning)" color="var(--warning)" />
                 )}
                 {email.attachments?.length > 0 && (
-                  <span style={{ fontSize: 11, color: "var(--text-muted)" }}>📎</span>
+                  <Paperclip size={12} color="var(--text-muted)" />
                 )}
                 <span className="email-time">{formatDate(email.sentAt)}</span>
               </div>
@@ -196,7 +194,7 @@ export default function EmailList({
                 onClick={e => toggleStar(e, email)}
                 title={email.isStarred ? "Unstar" : "Star"}
               >
-                {email.isStarred ? "⭐" : "☆"}
+                <Star size={14} fill={email.isStarred ? "currentColor" : "none"} />
               </button>
               {folder !== "TRASH" && (
                 <button
@@ -204,7 +202,7 @@ export default function EmailList({
                   onClick={e => trashEmail(e, email)}
                   title="Move to trash"
                 >
-                  🗑️
+                  <Trash2 size={14} />
                 </button>
               )}
             </div>

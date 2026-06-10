@@ -12,36 +12,36 @@
   --list-width: 340px;
 
   /* Backgrounds */
-  --bg-base:        #0a0b0f;
-  --bg-layer1:      #10121a;
-  --bg-layer2:      #161922;
-  --bg-layer3:      #1d2130;
+  --bg-base:        #050505;
+  --bg-layer1:      #0a0a0a;
+  --bg-layer2:      #121212;
+  --bg-layer3:      #1a1a1a;
   --bg-hover:       rgba(255,255,255,0.05);
   --bg-active:      rgba(255,255,255,0.08);
 
   /* Glass */
-  --glass-bg:       rgba(22, 25, 40, 0.6);
-  --glass-border:   rgba(255,255,255,0.08);
-  --glass-shadow:   0 8px 32px rgba(0,0,0,0.45);
-  --glass-blur:     blur(24px) saturate(180%);
-  --glass-highlight:rgba(255,255,255,0.04);
+  --glass-bg:       rgba(10, 10, 10, 0.65);
+  --glass-border:   rgba(255,255,255,0.06);
+  --glass-shadow:   0 8px 32px rgba(0,0,0,0.6);
+  --glass-blur:     blur(24px) saturate(150%);
+  --glass-highlight:rgba(255,255,255,0.03);
 
   /* Borders */
-  --border:         rgba(255,255,255,0.07);
+  --border:         rgba(255,255,255,0.06);
   --border-strong:  rgba(255,255,255,0.12);
 
   /* Text */
-  --text-primary:   #eef0f8;
-  --text-secondary: #9097b0;
-  --text-muted:     #545c78;
+  --text-primary:   #ffffff;
+  --text-secondary: #a1a1aa;
+  --text-muted:     #52525b;
 
   /* Accent palette */
-  --accent:         #6366f1;
-  --accent-2:       #8b5cf6;
-  --accent-3:       #06b6d4;
-  --accent-light:   #a5b4fc;
-  --accent-glow:    rgba(99,102,241,0.25);
-  --accent-gradient:linear-gradient(135deg, #6366f1 0%, #8b5cf6 60%, #06b6d4 100%);
+  --accent:         #ffffff;
+  --accent-2:       #e4e4e7;
+  --accent-3:       #d4d4d8;
+  --accent-light:   #f4f4f5;
+  --accent-glow:    rgba(255,255,255,0.12);
+  --accent-gradient:linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%);
 
   /* Status */
   --danger:         #f43f5e;
@@ -57,28 +57,32 @@
    LIGHT MODE
 ═══════════════════════════════════════════ */
 [data-theme="light"] {
-  --bg-base:        #f0f2ff;
-  --bg-layer1:      #e8eaf8;
-  --bg-layer2:      #ffffff;
-  --bg-layer3:      #f5f6ff;
-  --bg-hover:       rgba(99,102,241,0.06);
-  --bg-active:      rgba(99,102,241,0.10);
+  --bg-base:        #ffffff;
+  --bg-layer1:      #f4f4f5;
+  --bg-layer2:      #e4e4e7;
+  --bg-layer3:      #d4d4d8;
+  --bg-hover:       rgba(0,0,0,0.04);
+  --bg-active:      rgba(0,0,0,0.08);
 
-  --glass-bg:       rgba(255,255,255,0.65);
-  --glass-border:   rgba(99,102,241,0.15);
-  --glass-shadow:   0 8px 32px rgba(99,102,241,0.12);
+  --glass-bg:       rgba(255,255,255,0.8);
+  --glass-border:   rgba(0,0,0,0.06);
+  --glass-shadow:   0 8px 32px rgba(0,0,0,0.06);
   --glass-blur:     blur(24px) saturate(180%);
   --glass-highlight:rgba(255,255,255,0.8);
 
-  --border:         rgba(99,102,241,0.1);
-  --border-strong:  rgba(99,102,241,0.2);
+  --border:         rgba(0,0,0,0.08);
+  --border-strong:  rgba(0,0,0,0.15);
 
-  --text-primary:   #1a1c2e;
-  --text-secondary: #4b5280;
-  --text-muted:     #9096b8;
+  --text-primary:   #09090b;
+  --text-secondary: #52525b;
+  --text-muted:     #a1a1aa;
 
-  --accent-glow:    rgba(99,102,241,0.18);
-  --glass-shadow:   0 8px 32px rgba(99,102,241,0.15);
+  --accent:         #000000;
+  --accent-2:       #18181b;
+  --accent-3:       #27272a;
+  --accent-light:   #3f3f46;
+  --accent-glow:    rgba(0,0,0,0.1);
+  --accent-gradient:linear-gradient(135deg, #18181b 0%, #3f3f46 100%);
 }
 
 /* ═══════════════════════════════════════════
@@ -102,18 +106,18 @@ body::before {
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(99,102,241,0.12) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(139,92,246,0.10) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(6,182,212,0.06) 0%, transparent 70%);
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(255,255,255,0.03) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(255,255,255,0.02) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(255,255,255,0.01) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
 
 [data-theme="light"] body::before {
   background:
-    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(99,102,241,0.18) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(139,92,246,0.12) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(6,182,212,0.08) 0%, transparent 70%);
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(0,0,0,0.03) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(0,0,0,0.02) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(0,0,0,0.01) 0%, transparent 70%);
 }
 
 /* Scrollbar */
@@ -199,9 +203,9 @@ body::before {
   width: 1px; height: 100%;
   background: linear-gradient(180deg,
     transparent 0%,
-    rgba(255,255,255,0.1) 30%,
-    rgba(99,102,241,0.25) 50%,
-    rgba(255,255,255,0.1) 70%,
+    rgba(255,255,255,0.05) 30%,
+    rgba(255,255,255,0.15) 50%,
+    rgba(255,255,255,0.05) 70%,
     transparent 100%
   );
   pointer-events: none;
@@ -247,9 +251,9 @@ body::before {
 .compose-btn {
   margin: 14px 12px;
   padding: 11px 16px;
-  background: var(--accent-gradient);
+  background: var(--text-primary);
   border: none; border-radius: 12px;
-  color: white; font-weight: 600; font-size: 13px;
+  color: var(--bg-base); font-weight: 600; font-size: 13px;
   cursor: pointer; display: flex; align-items: center; gap: 8px;
   transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
   box-shadow: 0 4px 20px var(--accent-glow);
@@ -278,9 +282,9 @@ body::before {
   color: var(--text-primary);
 }
 .sidebar-item.active {
-  background: linear-gradient(135deg, rgba(99,102,241,0.18), rgba(139,92,246,0.12));
-  color: var(--accent-light);
-  box-shadow: inset 0 0 0 1px rgba(99,102,241,0.2);
+  background: var(--bg-active);
+  color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 .sidebar-item.active::before {
   content: '';
@@ -299,8 +303,8 @@ body::before {
 
 .badge {
   margin-left: auto;
-  background: var(--accent-gradient);
-  color: white; font-size: 9.5px; font-weight: 700;
+  background: var(--text-primary);
+  color: var(--bg-base); font-size: 9.5px; font-weight: 700;
   padding: 2px 6px; border-radius: 10px; min-width: 18px;
   text-align: center;
   box-shadow: 0 2px 8px var(--accent-glow);
@@ -331,9 +335,9 @@ body::before {
 }
 .sidebar-avatar {
   width: 32px; height: 32px; border-radius: 50%;
-  background: var(--accent-gradient);
+  background: var(--text-primary);
   display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700; color: white; flex-shrink: 0;
+  font-size: 12px; font-weight: 700; color: var(--bg-base); flex-shrink: 0;
   box-shadow: 0 2px 8px var(--accent-glow);
 }
 .sidebar-user-name { font-size: 12px; font-weight: 600; color: var(--text-primary); }
@@ -406,7 +410,7 @@ body::before {
 }
 .email-item:hover { background: var(--bg-hover); }
 .email-item.active {
-  background: linear-gradient(135deg, rgba(99,102,241,0.10), rgba(139,92,246,0.06));
+  background: var(--bg-active);
   border-left: 2px solid var(--accent);
 }
 .email-item.unread { border-left: 2px solid var(--accent); }
@@ -480,9 +484,9 @@ body::before {
 .email-meta { display: flex; align-items: flex-start; gap: 12px; }
 .email-meta-avatar {
   width: 42px; height: 42px; border-radius: 50%;
-  background: var(--accent-gradient);
+  background: var(--text-primary);
   display: flex; align-items: center; justify-content: center;
-  font-size: 16px; font-weight: 700; color: white; flex-shrink: 0;
+  font-size: 16px; font-weight: 700; color: var(--bg-base); flex-shrink: 0;
   box-shadow: 0 4px 12px var(--accent-glow);
 }
 .email-meta-from { font-size: 14px; font-weight: 600; color: var(--text-primary); }
@@ -568,7 +572,7 @@ body::before {
 }
 .compose-field label {
   font-size: 11px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.05em;
-  width: 38px; flex-shrink: 0; text-transform: uppercase;
+  width: 65px; flex-shrink: 0; text-transform: uppercase;
 }
 .compose-field input {
   flex: 1; background: transparent; border: none; outline: none;
@@ -599,9 +603,9 @@ body::before {
 }
 .send-btn {
   padding: 9px 22px;
-  background: var(--accent-gradient);
+  background: var(--text-primary);
   border: none; border-radius: 10px;
-  color: white; font-weight: 600; font-size: 13px;
+  color: var(--bg-base); font-weight: 600; font-size: 13px;
   cursor: pointer; display: flex; align-items: center; gap: 6px;
   transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
   box-shadow: 0 4px 16px var(--accent-glow);
@@ -693,8 +697,8 @@ body::before {
   font-family: inherit;
 }
 .btn-primary {
-  background: var(--accent-gradient);
-  color: white;
+  background: var(--text-primary);
+  color: var(--bg-base);
   box-shadow: 0 4px 14px var(--accent-glow);
 }
 .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }

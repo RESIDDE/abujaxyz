@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { SessionProvider } from "next-auth/react";
 import Sidebar from "@/components/sidebar/Sidebar";
 import ComposeModal from "@/components/mail/ComposeModal";
 
@@ -15,9 +14,8 @@ export default function MailLayout({ children }: { children: React.ReactNode }) 
   // but Sidebar handles new compose.
 
   return (
-    <SessionProvider>
-      <div className="app-shell">
-        <Sidebar onCompose={() => setComposing(true)} />
+    <div className="app-shell">
+      <Sidebar onCompose={() => setComposing(true)} />
         {children}
         
         {composing && (
@@ -26,7 +24,6 @@ export default function MailLayout({ children }: { children: React.ReactNode }) 
             onSent={() => {}} 
           />
         )}
-      </div>
-    </SessionProvider>
+    </div>
   );
 }

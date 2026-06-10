@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
+import { createClient as createServerClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
-function isSuperAdmin(session: any) {
-  return session?.user && session.user.role === "SUPERADMIN";
+function isSuperAdmin(user: any) {
+  return user && user.user_metadata?.role === "SUPERADMIN";
 }
 
 const createUserSchema = z.object({
@@ -16,22 +15,26 @@ const createUserSchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!isSuperAdmin(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const supabase = createServerClient();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
 
-  const users = await prisma.user.findMany({
-    select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true, avatar: true },
-    orderBy: { createdAt: "desc" },
-  });
+  if (!isSuperAdmin(authUser)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const { data: users, error } = await supabase
+    .from('User')
+    .select('id, name, email, role, isActive, createdAt, avatar')
+    .order('createdAt', { ascending: false });
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   // Add email stats
   const usersWithStats = await Promise.all(
     users.map(async (u) => {
-      const [inbox, sent] = await Promise.all([
-        prisma.email.count({ where: { userId: u.id, folder: "INBOX" } }),
-        prisma.email.count({ where: { userId: u.id, folder: "SENT" } }),
+      const [{ count: inbox }, { count: sent }] = await Promise.all([
+        supabase.from('Email').select('*', { count: 'exact', head: true }).eq('userId', u.id).eq('folder', 'INBOX'),
+        supabase.from('Email').select('*', { count: 'exact', head: true }).eq('userId', u.id).eq('folder', 'SENT'),
       ]);
-      return { ...u, inboxCount: inbox, sentCount: sent };
+      return { ...u, inboxCount: inbox || 0, sentCount: sent || 0 };
     })
   );
 
@@ -39,8 +42,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!isSuperAdmin(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const supabase = createServerClient();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+
+  if (!isSuperAdmin(authUser)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const parsed = createUserSchema.safeParse(body);
@@ -49,15 +54,41 @@ export async function POST(req: NextRequest) {
   const domain = process.env.EMAIL_DOMAIN || "abujacars.com";
   const email = `${parsed.data.emailUsername.toLowerCase()}@${domain}`;
 
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const supabaseAdmin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  );
+
+  // Check existing
+  const { data: existing } = await supabaseAdmin.from('User').select('id').eq('email', email).single();
   if (existing) return NextResponse.json({ error: "Email already exists" }, { status: 409 });
 
-  const hashedPassword = await bcrypt.hash(parsed.data.password, 12);
-
-  const user = await prisma.user.create({
-    data: { name: parsed.data.name, email, password: hashedPassword, role: parsed.data.role },
-    select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
+  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    email,
+    password: parsed.data.password,
+    email_confirm: true,
+    user_metadata: {
+      name: parsed.data.name,
+      role: parsed.data.role
+    }
   });
 
-  return NextResponse.json(user, { status: 201 });
+  if (authError) return NextResponse.json({ error: authError.message }, { status: 400 });
+
+  const { data: newUser, error: dbError } = await supabaseAdmin
+    .from('User')
+    .insert({
+      id: authData.user.id,
+      name: parsed.data.name,
+      email,
+      password: 'managed_by_supabase_auth',
+      role: parsed.data.role,
+      updatedAt: new Date().toISOString(),
+    })
+    .select('id, name, email, role, isActive, createdAt')
+    .single();
+
+  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
+
+  return NextResponse.json(newUser, { status: 201 });
 }

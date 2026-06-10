@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
+import { MailOpen, Paperclip, X, Star, Reply, ReplyAll, Forward } from "lucide-react";
 
 interface Email {
   id: string;
@@ -62,7 +63,7 @@ export default function EmailView({ emailId, onReply, onClose, impersonating }: 
     return (
       <div className="email-view-panel" style={{ background: "transparent" }}>
         <div className="email-view-empty">
-          <div style={{ fontSize: 72, opacity: 0.18, lineHeight: 1 }}>✉️</div>
+          <div style={{ opacity: 0.18, transform: "scale(2.5)", marginBottom: 12 }}><MailOpen size={32} /></div>
           <div style={{ textAlign: "center" }}>
             <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>
               No message selected
@@ -112,7 +113,7 @@ export default function EmailView({ emailId, onReply, onClose, impersonating }: 
             onClick={onClose}
             title="Close"
             style={{ flexShrink: 0, marginTop: 2 }}
-          >✕</button>
+          ><X size={16} /></button>
         </div>
 
         <div className="email-meta">
@@ -145,24 +146,15 @@ export default function EmailView({ emailId, onReply, onClose, impersonating }: 
       {!impersonating && (
         <div className="email-toolbar">
           <button className="toolbar-btn" onClick={() => onReply(email, "reply")}>
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-            </svg>
+            <Reply size={14} />
             Reply
           </button>
           <button className="toolbar-btn" onClick={() => onReply(email, "replyAll")}>
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M8 10h10a8 8 0 018 8v2M8 10l6 6m-6-6l6-6M3 10h2" />
-            </svg>
+            <ReplyAll size={14} />
             Reply All
           </button>
           <button className="toolbar-btn" onClick={() => onReply(email, "forward")}>
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" />
-            </svg>
+            <Forward size={14} />
             Forward
           </button>
 
@@ -182,7 +174,7 @@ export default function EmailView({ emailId, onReply, onClose, impersonating }: 
               setEmail(prev => prev ? { ...prev, isStarred: !prev.isStarred } : prev);
             }}
           >
-            {email.isStarred ? "⭐" : "☆"} {email.isStarred ? "Starred" : "Star"}
+            <Star size={14} fill={email.isStarred ? "currentColor" : "none"} /> {email.isStarred ? "Starred" : "Star"}
           </button>
         </div>
       )}
@@ -202,7 +194,7 @@ export default function EmailView({ emailId, onReply, onClose, impersonating }: 
                 borderRadius: 12,
                 boxShadow: "var(--glass-shadow)",
               }}>
-                <span style={{ fontSize: 20 }}>📎</span>
+                <Paperclip size={20} />
                 <div>
                   <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>
                     {att.filename}

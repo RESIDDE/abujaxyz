@@ -1,13 +1,15 @@
 "use client";
 
-import { SessionProvider } from "next-auth/react";
 import Sidebar from "@/components/sidebar/Sidebar";
+import ComposeModal from "@/components/mail/ComposeModal";
+import { useState } from "react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const [composing, setComposing] = useState(false);
+
   return (
-    <SessionProvider>
-      <div className="app-shell">
-        <Sidebar onCompose={() => {}} />
+    <div className="app-shell">
+      <Sidebar onCompose={() => setComposing(true)} />
         <div style={{
           flex: 1, display: "flex", flexDirection: "column",
           background: "transparent", overflowY: "auto",
@@ -22,7 +24,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
           {children}
         </div>
-      </div>
-    </SessionProvider>
+        
+      {composing && (
+        <ComposeModal 
+          onClose={() => setComposing(false)} 
+          onSent={() => {}} 
+        />
+      )}
+    </div>
   );
 }

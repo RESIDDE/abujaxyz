@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
 const querySchema = z.object({
@@ -12,8 +11,10 @@ const querySchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
   const parsed = querySchema.safeParse(Object.fromEntries(searchParams));
@@ -21,40 +22,47 @@ export async function GET(req: NextRequest) {
 
   const { folder, page, limit, search, userId } = parsed.data;
 
-  // Only superadmin can view other users
-  let targetUserId = session.user.id;
-  if (userId && (session.user as any).role === "SUPERADMIN") {
+  let targetUserId = user.id;
+  if (userId && user.user_metadata?.role === "SUPERADMIN") {
     targetUserId = userId;
   }
 
   const skip = (page - 1) * limit;
 
-  const where: any = { userId: targetUserId, folder };
+  let query = supabase
+    .from('Email')
+    .select(`*, attachments:Attachment(id, filename, size, mimeType)`, { count: 'exact' })
+    .eq('userId', targetUserId)
+    .eq('folder', folder)
+    .order('sentAt', { ascending: false })
+    .range(skip, skip + limit - 1);
+
   if (search) {
-    where.OR = [
-      { subject: { contains: search } },
-      { fromAddress: { contains: search } },
-      { bodyText: { contains: search } },
-    ];
+    query = query.or(`subject.ilike.%${search}%,fromAddress.ilike.%${search}%,bodyText.ilike.%${search}%`);
   }
 
-  const [emails, total, unreadCount] = await Promise.all([
-    prisma.email.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: { sentAt: "desc" },
-      include: { attachments: { select: { id: true, filename: true, size: true, mimeType: true } } },
-    }),
-    prisma.email.count({ where }),
-    prisma.email.count({ where: { userId: targetUserId, folder, isRead: false } }),
-  ]);
+  const { data: emails, count: total, error } = await query;
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  let unreadQuery = supabase
+    .from('Email')
+    .select('*', { count: 'exact', head: true })
+    .eq('userId', targetUserId)
+    .eq('folder', folder)
+    .eq('isRead', false);
+
+  if (search) {
+    unreadQuery = unreadQuery.or(`subject.ilike.%${search}%,fromAddress.ilike.%${search}%,bodyText.ilike.%${search}%`);
+  }
+
+  const { count: unreadCount } = await unreadQuery;
 
   return NextResponse.json({
     emails,
-    total,
-    unreadCount,
+    total: total || 0,
+    unreadCount: unreadCount || 0,
     page,
-    totalPages: Math.ceil(total / limit),
+    totalPages: Math.ceil((total || 0) / limit),
   });
 }

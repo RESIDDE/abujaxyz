@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
 const updateSchema = z.object({
@@ -10,55 +9,84 @@ const updateSchema = z.object({
 });
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const email = await prisma.email.findFirst({
-    where: {
-      id: params.id,
-      ...(((session.user as any).role !== "SUPERADMIN") && { userId: session.user.id }),
-    },
-    include: { attachments: true, thread: { include: { emails: { orderBy: { sentAt: "asc" }, include: { attachments: true } } } } },
-  });
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (!email) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  let query = supabase
+    .from('Email')
+    .select('*, attachments:Attachment(*)')
+    .eq('id', params.id);
+  
+  if (user.user_metadata?.role !== "SUPERADMIN") {
+    query = query.eq('userId', user.id);
+  }
+
+  const { data: email, error } = await query.single();
+
+  if (error || !email) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // To get the thread and its emails with attachments, we need to do another query in Supabase 
+  // since nested relations three levels deep (`thread.emails.attachments`) can be tricky with postgrest syntax.
+  if (email.threadId) {
+    const { data: threadData } = await supabase
+      .from('Thread')
+      .select('*, emails:Email(*, attachments:Attachment(*))')
+      .eq('id', email.threadId)
+      .single();
+    
+    email.thread = threadData;
+  }
 
   // Mark as read
   if (!email.isRead) {
-    await prisma.email.update({ where: { id: params.id }, data: { isRead: true } });
+    await supabase.from('Email').update({ isRead: true }).eq('id', params.id);
   }
 
   return NextResponse.json(email);
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid data" }, { status: 400 });
 
-  const email = await prisma.email.updateMany({
-    where: { id: params.id, userId: session.user.id },
-    data: parsed.data,
-  });
+  const { error } = await supabase
+    .from('Email')
+    .update(parsed.data)
+    .eq('id', params.id)
+    .eq('userId', user.id);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ success: true });
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  // Move to trash first, delete permanently if already in trash
-  const email = await prisma.email.findFirst({ where: { id: params.id, userId: session.user.id } });
-  if (!email) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { data: email, error: findError } = await supabase
+    .from('Email')
+    .select('folder')
+    .eq('id', params.id)
+    .eq('userId', user.id)
+    .single();
+
+  if (findError || !email) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   if (email.folder === "TRASH") {
-    await prisma.email.delete({ where: { id: params.id } });
+    await supabase.from('Email').delete().eq('id', params.id);
   } else {
-    await prisma.email.update({ where: { id: params.id }, data: { folder: "TRASH" } });
+    await supabase.from('Email').update({ folder: "TRASH" }).eq('id', params.id);
   }
 
   return NextResponse.json({ success: true });

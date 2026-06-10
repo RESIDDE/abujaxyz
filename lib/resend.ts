@@ -14,4 +14,4 @@ export function getResend(): Resend {
 // Keep backward compat export
 export const resend = new Resend(process.env.RESEND_API_KEY || "placeholder");
 
-export const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "lekksideexpo.com";
+export const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "abujacars.com";

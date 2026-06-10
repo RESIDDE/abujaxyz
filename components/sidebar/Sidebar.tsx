@@ -1,17 +1,18 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useTheme } from "@/components/ThemeProvider";
+import { Inbox, Star, Send, FileText, Trash2, Mail, Sun, Moon, Edit2, Shield, Users } from "lucide-react";
 
 const navItems = [
-  { href: "/inbox",   label: "Inbox",   icon: "📥", folder: "INBOX" },
-  { href: "/starred", label: "Starred", icon: "⭐", folder: "STARRED" },
-  { href: "/sent",    label: "Sent",    icon: "📤", folder: "SENT" },
-  { href: "/drafts",  label: "Drafts",  icon: "📝", folder: "DRAFT" },
-  { href: "/trash",   label: "Trash",   icon: "🗑️", folder: "TRASH" },
+  { href: "/inbox",   label: "Inbox",   icon: <Inbox size={18} />, folder: "INBOX" },
+  { href: "/starred", label: "Starred", icon: <Star size={18} />, folder: "STARRED" },
+  { href: "/sent",    label: "Sent",    icon: <Send size={18} />, folder: "SENT" },
+  { href: "/drafts",  label: "Drafts",  icon: <FileText size={18} />, folder: "DRAFT" },
+  { href: "/trash",   label: "Trash",   icon: <Trash2 size={18} />, folder: "TRASH" },
 ];
 
 interface SidebarProps {
@@ -20,12 +21,29 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ onCompose, impersonatingUser }: SidebarProps) {
-  const { data: session } = useSession();
+  const [session, setSession] = useState<any>(null);
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const [unreadCount, setUnreadCount] = useState(0);
-  const user = impersonatingUser || session?.user;
-  const role = (session?.user as any)?.role;
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const user = impersonatingUser || session?.user?.user_metadata || session?.user;
+  const role = session?.user?.user_metadata?.role;
 
   useEffect(() => {
     fetch("/api/emails?folder=INBOX&limit=1")
@@ -37,14 +55,22 @@ export default function Sidebar({ onCompose, impersonatingUser }: SidebarProps) 
   const initials = user?.name
     ?.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase() || "?";
 
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
+
   return (
     <aside className={`sidebar ${role === "SUPERADMIN" && !impersonatingUser ? "admin-sidebar" : ""}`}>
       {/* Logo + theme toggle */}
       <div className="sidebar-logo">
-        <div className="sidebar-logo-icon">✉️</div>
+        <div className="sidebar-logo-icon">
+          <Mail size={20} color="var(--bg-base)" />
+        </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="sidebar-logo-text">AbujaCarsMail</div>
-          <div className="sidebar-logo-sub">@lekksideexpo.com</div>
+          <div className="sidebar-logo-sub">@abujacars.com</div>
         </div>
         <button
           className="theme-toggle"
@@ -52,13 +78,13 @@ export default function Sidebar({ onCompose, impersonatingUser }: SidebarProps) 
           title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           aria-label="Toggle theme"
         >
-          {theme === "dark" ? "☀️" : "🌙"}
+          {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
         </button>
       </div>
 
       {!impersonatingUser && (
         <button id="compose-btn" className="compose-btn" onClick={onCompose}>
-          <span style={{ fontSize: 15 }}>✏️</span>
+          <Edit2 size={16} />
           <span>Compose</span>
         </button>
       )}
@@ -72,7 +98,7 @@ export default function Sidebar({ onCompose, impersonatingUser }: SidebarProps) 
             <Link
               key={item.href}
               href={impersonatingUser
-                ? `/admin/impersonate/${(session?.user as any)?.id}${item.href}`
+                ? `/admin/impersonate/${session?.user?.id}${item.href}`
                 : item.href}
               className={`sidebar-item ${isActive ? "active" : ""}`}
               id={`nav-${item.folder.toLowerCase()}`}
@@ -96,7 +122,7 @@ export default function Sidebar({ onCompose, impersonatingUser }: SidebarProps) 
             className={`sidebar-item ${pathname === "/admin" ? "active" : ""}`}
             id="nav-admin"
           >
-            <span className="sidebar-item-icon">🛡️</span>
+            <span className="sidebar-item-icon"><Shield size={18} /></span>
             <span>Dashboard</span>
           </Link>
           <Link
@@ -104,7 +130,7 @@ export default function Sidebar({ onCompose, impersonatingUser }: SidebarProps) 
             className={`sidebar-item ${pathname === "/admin/users" ? "active" : ""}`}
             id="nav-admin-users"
           >
-            <span className="sidebar-item-icon">👥</span>
+            <span className="sidebar-item-icon"><Users size={18} /></span>
             <span>Users</span>
           </Link>
         </div>
@@ -114,7 +140,7 @@ export default function Sidebar({ onCompose, impersonatingUser }: SidebarProps) 
       <div className="sidebar-user">
         <div
           className="sidebar-user-card"
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={handleSignOut}
           title="Sign out"
           role="button"
           tabIndex={0}

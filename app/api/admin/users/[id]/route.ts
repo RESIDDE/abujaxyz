@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
+import { createClient as createServerClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
-function isSuperAdmin(session: any) {
-  return session?.user && session.user.role === "SUPERADMIN";
+function isSuperAdmin(user: any) {
+  return user && user.user_metadata?.role === "SUPERADMIN";
 }
 
 const updateSchema = z.object({
@@ -16,36 +15,76 @@ const updateSchema = z.object({
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await auth();
-  if (!isSuperAdmin(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const supabase = createServerClient();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+
+  if (!isSuperAdmin(authUser)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   const data: any = { ...parsed.data };
+  
+  const supabaseAdmin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  );
+
   if (data.password) {
-    data.password = await bcrypt.hash(data.password, 12);
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(params.id, {
+      password: data.password
+    });
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    delete data.password; // Don't save plaintext in User table
   }
 
-  const user = await prisma.user.update({
-    where: { id: params.id },
-    data,
-    select: { id: true, name: true, email: true, role: true, isActive: true },
-  });
+  // Update role or name in Auth metadata if needed
+  if (data.name || data.role) {
+    const authUpdateData: any = {};
+    if (data.name) authUpdateData.name = data.name;
+    if (data.role) authUpdateData.role = data.role;
+    await supabaseAdmin.auth.admin.updateUserById(params.id, {
+      user_metadata: authUpdateData
+    });
+  }
 
-  return NextResponse.json(user);
+  const { data: updatedUser, error } = await supabaseAdmin
+    .from('User')
+    .update(data)
+    .eq('id', params.id)
+    .select('id, name, email, role, isActive')
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json(updatedUser);
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await auth();
-  if (!isSuperAdmin(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const supabase = createServerClient();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
 
-  // Prevent deleting yourself
-  if (params.id === session?.user?.id) {
+  if (!isSuperAdmin(authUser)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  if (params.id === authUser?.id) {
     return NextResponse.json({ error: "Cannot delete your own account" }, { status: 400 });
   }
 
-  await prisma.user.delete({ where: { id: params.id } });
+  const supabaseAdmin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  );
+
+  // Deleting from Auth usually cascades to public tables if foreign keys are setup with ON DELETE CASCADE
+  // If not, we delete from public.User first. Our migration script has ON DELETE CASCADE for sessions, emails etc, 
+  // but public.User doesn't cascade from auth.users unless we setup a trigger. 
+  // Let's delete from auth.users which is the source of truth.
+  const { error } = await supabaseAdmin.auth.admin.deleteUser(params.id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Also delete from public.User just in case
+  await supabaseAdmin.from('User').delete().eq('id', params.id);
+
   return NextResponse.json({ success: true });
 }

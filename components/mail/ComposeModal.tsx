@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { CornerUpLeft, CornerUpRight, Forward, Edit2, Minus, X, Send as SendIcon, Paperclip, Smile, Trash2 } from "lucide-react";
 import Placeholder from "@tiptap/extension-placeholder";
 import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
@@ -98,28 +99,29 @@ export default function ComposeModal({ onClose, onSent, replyTo }: ComposeModalP
         {/* Header */}
         <div className="compose-header">
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 15 }}>
-              {replyTo?.type === "reply" || replyTo?.type === "replyAll" ? "↩️" :
-               replyTo?.type === "forward" ? "↪️" : "✏️"}
+            <span style={{ display: "flex", alignItems: "center" }}>
+              {replyTo?.type === "reply" ? <CornerUpLeft size={16} /> :
+               replyTo?.type === "replyAll" ? <CornerUpRight size={16} /> :
+               replyTo?.type === "forward" ? <Forward size={16} /> : <Edit2 size={16} />}
             </span>
             <span>{modalTitle}</span>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
             <button
               className="icon-btn"
-              style={{ padding: "4px 8px", fontSize: 12, color: "var(--text-muted)" }}
+              style={{ padding: "4px 8px", color: "var(--text-muted)" }}
               onClick={onClose}
               title="Minimize"
             >
-              −
+              <Minus size={14} />
             </button>
             <button
               className="icon-btn danger"
-              style={{ padding: "4px 8px", fontSize: 12 }}
+              style={{ padding: "4px 8px" }}
               onClick={onClose}
               title="Discard"
             >
-              ✕
+              <X size={14} />
             </button>
           </div>
         </div>
@@ -164,19 +166,16 @@ export default function ComposeModal({ onClose, onSent, replyTo }: ComposeModalP
               </>
             ) : (
               <>
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
+                <SendIcon size={14} />
                 Send
               </>
             )}
           </button>
 
           <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-            <button className="icon-btn" title="Attach file (coming soon)" style={{ fontSize: 15 }}>📎</button>
-            <button className="icon-btn" title="Emoji (coming soon)" style={{ fontSize: 15 }}>😊</button>
-            <button className="icon-btn danger" onClick={onClose} title="Discard draft" style={{ fontSize: 15 }}>🗑️</button>
+            <button className="icon-btn" title="Attach file (coming soon)"><Paperclip size={16} /></button>
+            <button className="icon-btn" title="Emoji (coming soon)"><Smile size={16} /></button>
+            <button className="icon-btn danger" onClick={onClose} title="Discard draft"><Trash2 size={16} /></button>
           </div>
         </div>
 

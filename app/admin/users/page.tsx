@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { Trash2, Inbox, Send, Eye, UserPlus, X, Sparkles } from "lucide-react";
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<any[]>([]);
@@ -41,7 +42,7 @@ export default function AdminUsersPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create user");
       
-      toast.success("✅ User created successfully");
+      toast.success("User created successfully");
       setShowModal(false);
       setNewUser({ name: "", emailUsername: "", password: "", role: "USER" });
       fetchUsers();
@@ -70,7 +71,7 @@ export default function AdminUsersPage() {
     try {
       await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
       setUsers(prev => prev.filter(u => u.id !== id));
-      toast.success("🗑️ User deleted");
+      toast.success("User deleted");
     } catch (e) {
       toast.error("Failed to delete user");
     }
@@ -175,11 +176,11 @@ export default function AdminUsersPage() {
                 <td>
                   <div style={{ display: "flex", gap: 16, fontSize: 13 }}>
                     <div title="Inbox" style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <span style={{ color: "var(--accent-light)" }}>📥</span>
+                      <span style={{ color: "var(--accent-light)" }}><Inbox size={14} /></span>
                       <span style={{ fontWeight: 500 }}>{user.inboxCount}</span>
                     </div>
                     <div title="Sent" style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <span style={{ color: "var(--text-muted)" }}>📤</span>
+                      <span style={{ color: "var(--text-muted)" }}><Send size={14} /></span>
                       <span style={{ fontWeight: 500 }}>{user.sentCount}</span>
                     </div>
                   </div>
@@ -190,7 +191,7 @@ export default function AdminUsersPage() {
                 <td style={{ textAlign: "right", paddingRight: 24 }}>
                   <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                     <Link href={`/admin/impersonate/${user.id}/inbox`} className="btn btn-ghost btn-sm" title="Impersonate & View Inbox">
-                      👁️ View Mail
+                      <Eye size={14} /> View Mail
                     </Link>
                     <button
                       className="btn btn-ghost btn-sm"
@@ -198,7 +199,7 @@ export default function AdminUsersPage() {
                       onClick={() => deleteUser(user.id)}
                       title="Delete User permanently"
                     >
-                      🗑️
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </td>
@@ -213,8 +214,8 @@ export default function AdminUsersPage() {
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="compose-modal" style={{ maxWidth: 460, height: "auto" }} onClick={e => e.stopPropagation()}>
             <div className="compose-header">
-              <span>👤 Create New User</span>
-              <button className="icon-btn" onClick={() => setShowModal(false)}>✕</button>
+              <span style={{ display: "flex", alignItems: "center", gap: 8 }}><UserPlus size={16} /> Create New User</span>
+              <button className="icon-btn" onClick={() => setShowModal(false)}><X size={16} /></button>
             </div>
             
             <form onSubmit={handleCreateUser} style={{ padding: "24px", display: "flex", flexDirection: "column", gap: 20 }}>
@@ -286,7 +287,7 @@ export default function AdminUsersPage() {
                   Cancel
                 </button>
                 <button type="submit" className="send-btn" disabled={saving}>
-                  {saving ? "Creating…" : "✨ Create User"}
+                  {saving ? "Creating…" : <><Sparkles size={14} /> Create User</>}
                 </button>
               </div>
             </form>

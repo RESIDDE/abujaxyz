@@ -1,29 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user || (session.user as any).role !== "SUPERADMIN") {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user || user.user_metadata?.role !== "SUPERADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const [totalUsers, activeUsers, totalEmailsToday, totalInbound] = await Promise.all([
-    prisma.user.count(),
-    prisma.user.count({ where: { isActive: true } }),
-    prisma.email.count({
-      where: {
-        folder: "SENT",
-        sentAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
-      },
-    }),
-    prisma.email.count({
-      where: {
-        folder: "INBOX",
-        createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
-      },
-    }),
+  const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
+
+  const [
+    { count: totalUsers },
+    { count: activeUsers },
+    { count: totalEmailsToday },
+    { count: totalInbound }
+  ] = await Promise.all([
+    supabase.from('User').select('*', { count: 'exact', head: true }),
+    supabase.from('User').select('*', { count: 'exact', head: true }).eq('isActive', true),
+    supabase.from('Email').select('*', { count: 'exact', head: true })
+      .eq('folder', 'SENT')
+      .gte('sentAt', todayStart),
+    supabase.from('Email').select('*', { count: 'exact', head: true })
+      .eq('folder', 'INBOX')
+      .gte('createdAt', todayStart),
   ]);
 
-  return NextResponse.json({ totalUsers, activeUsers, totalEmailsToday, totalInbound });
+  return NextResponse.json({ 
+    totalUsers: totalUsers || 0, 
+    activeUsers: activeUsers || 0, 
+    totalEmailsToday: totalEmailsToday || 0, 
+    totalInbound: totalInbound || 0 
+  });
 }

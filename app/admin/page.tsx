@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Users, Send, Inbox, VenetianMask } from "lucide-react";
 
-interface Stat { label: string; value: number | string; sub: string; icon: string; color: string; }
+interface Stat { label: string; value: number | string; sub: string; icon: any; color: string; }
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
@@ -15,9 +16,9 @@ export default function AdminDashboard() {
   }, []);
 
   const cards: Stat[] = stats ? [
-    { label: "Total Users", value: stats.totalUsers, sub: `${stats.activeUsers} active`, icon: "👥", color: "var(--accent)" },
-    { label: "Emails Sent Today", value: stats.totalEmailsToday, sub: "via Resend API", icon: "📤", color: "var(--success)" },
-    { label: "Received Today", value: stats.totalInbound, sub: "via Inbound Webhook", icon: "📥", color: "var(--accent-3)" },
+    { label: "Total Users", value: stats.totalUsers, sub: `${stats.activeUsers} active`, icon: <Users size={20} />, color: "var(--accent)" },
+    { label: "Emails Sent Today", value: stats.totalEmailsToday, sub: "via Resend API", icon: <Send size={20} />, color: "var(--success)" },
+    { label: "Received Today", value: stats.totalInbound, sub: "via Inbound Webhook", icon: <Inbox size={20} />, color: "var(--accent-3)" },
   ] : [];
 
   return (
@@ -70,8 +71,8 @@ export default function AdminDashboard() {
         </h2>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           {[
-            { href: "/admin/users", label: "Manage Users", icon: "👥", desc: "Create, edit, deactivate" },
-            { href: "/admin/impersonate", label: "Impersonate User", icon: "🎭", desc: "View as any user" },
+            { href: "/admin/users", label: "Manage Users", icon: <Users size={24} />, desc: "Create, edit, deactivate" },
+            { href: "/admin/impersonate", label: "Impersonate User", icon: <VenetianMask size={24} />, desc: "View as any user" },
           ].map(action => (
             <a
               key={action.href}

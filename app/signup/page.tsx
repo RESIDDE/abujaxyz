@@ -1,33 +1,45 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useTheme } from "@/components/ThemeProvider";
 import Link from "next/link";
-import { Mail, Lock, Eye, EyeOff, Sun, Moon } from "lucide-react";
+import { createAdminUser } from "./actions";
 
-export default function LoginPage() {
+export default function SignupPage() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [activationCode, setActivationCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    
-    setLoading(false);
-    if (error) {
-      toast.error(error.message || "Invalid email or password");
-    } else {
-      router.push("/inbox");
-      router.refresh();
+
+    try {
+      const formData = new FormData();
+      formData.append("name", name);
+      formData.append("email", email);
+      formData.append("password", password);
+      formData.append("activationCode", activationCode);
+
+      const res = await createAdminUser(formData);
+
+      if (res.error) {
+        toast.error(res.error);
+      } else {
+        toast.success("Admin account created successfully! Check your email to verify.");
+        router.push("/login");
+      }
+    } catch (err) {
+      toast.error("Network error");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -58,29 +70,29 @@ export default function LoginPage() {
         title="Toggle theme"
         aria-label="Toggle light/dark mode"
       >
-        {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+        {theme === "dark" ? "☀️" : "🌙"}
       </button>
 
       <div style={{ width: "100%", maxWidth: 420 }}>
         {/* Logo / Brand */}
         <div style={{ textAlign: "center", marginBottom: 36 }}>
-            <div style={{
-              width: 64, height: 64, margin: "0 auto 18px",
-              background: "var(--text-primary)",
-              color: "var(--bg-base)",
-              borderRadius: 20,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "0 8px 32px var(--accent-glow), 0 0 0 1px rgba(255,255,255,0.08)",
-              animation: "float 4s ease-in-out infinite",
-            }}><Mail size={32} /></div>
+          <div style={{
+            width: 64, height: 64, margin: "0 auto 18px",
+            background: "var(--accent-gradient)",
+            borderRadius: 20,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 28,
+            boxShadow: "0 8px 32px var(--accent-glow), 0 0 0 1px rgba(255,255,255,0.08)",
+            animation: "float 4s ease-in-out infinite",
+          }}>🔑</div>
           <h1 style={{
             fontSize: 26, fontWeight: 800, color: "var(--text-primary)",
             marginBottom: 6, letterSpacing: "-0.6px",
           }}>
-            AbujaCarsMail
+            Create Admin
           </h1>
           <p style={{ fontSize: 14, color: "var(--text-muted)", lineHeight: 1.5 }}>
-            Sign in to your <span style={{ color: "var(--accent-light)", fontWeight: 500 }}>@abujacars.com</span> account
+            Activate your admin account
           </p>
         </div>
 
@@ -103,43 +115,61 @@ export default function LoginPage() {
           }} />
 
           <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label className="form-label" htmlFor="login-email">Email Address</label>
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <label className="form-label" htmlFor="signup-name">Full Name</label>
               <div style={{ position: "relative" }}>
                 <span style={{
                   position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)",
-                  pointerEvents: "none", color: "var(--text-muted)",
-                }}><Mail size={16} /></span>
+                  fontSize: 15, pointerEvents: "none",
+                }}>👤</span>
                 <input
-                  id="login-email"
-                  type="email"
+                  id="signup-name"
+                  type="text"
                   className="form-input"
-                  placeholder="you@abujacars.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  placeholder="John Doe"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
                   required
-                  autoComplete="email"
                   style={{ paddingLeft: 42 }}
                 />
               </div>
             </div>
 
-            <div className="form-group" style={{ marginBottom: 28 }}>
-              <label className="form-label" htmlFor="login-password">Password</label>
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <label className="form-label" htmlFor="signup-email">Email Address</label>
               <div style={{ position: "relative" }}>
                 <span style={{
                   position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)",
-                  pointerEvents: "none", color: "var(--text-muted)",
-                }}><Lock size={16} /></span>
+                  fontSize: 15, pointerEvents: "none",
+                }}>📧</span>
                 <input
-                  id="login-password"
+                  id="signup-email"
+                  type="email"
+                  className="form-input"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  style={{ paddingLeft: 42 }}
+                />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <label className="form-label" htmlFor="signup-password">Password</label>
+              <div style={{ position: "relative" }}>
+                <span style={{
+                  position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)",
+                  fontSize: 15, pointerEvents: "none",
+                }}>🔒</span>
+                <input
+                  id="signup-password"
                   type={showPw ? "text" : "password"}
                   className="form-input"
                   placeholder="••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
-                  autoComplete="current-password"
                   style={{ paddingLeft: 42, paddingRight: 44 }}
                 />
                 <button
@@ -148,16 +178,35 @@ export default function LoginPage() {
                   style={{
                     position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
                     background: "none", border: "none", cursor: "pointer",
-                    color: "var(--text-muted)", padding: 4,
-                    display: "flex", alignItems: "center", justifyContent: "center"
+                    fontSize: 15, color: "var(--text-muted)", padding: 4,
                   }}
                   aria-label="Toggle password visibility"
-                >{showPw ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                >{showPw ? "🙈" : "👁️"}</button>
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 28 }}>
+              <label className="form-label" htmlFor="signup-activation">Activation Code</label>
+              <div style={{ position: "relative" }}>
+                <span style={{
+                  position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)",
+                  fontSize: 15, pointerEvents: "none",
+                }}>🛡️</span>
+                <input
+                  id="signup-activation"
+                  type="text"
+                  className="form-input"
+                  placeholder="Secret Code"
+                  value={activationCode}
+                  onChange={e => setActivationCode(e.target.value)}
+                  required
+                  style={{ paddingLeft: 42 }}
+                />
               </div>
             </div>
 
             <button
-              id="login-submit"
+              id="signup-submit"
               type="submit"
               className="send-btn"
               style={{ width: "100%", justifyContent: "center", padding: "13px", fontSize: 14 }}
@@ -166,19 +215,19 @@ export default function LoginPage() {
               {loading ? (
                 <>
                   <span style={{ display: "inline-block", animation: "spin 0.8s linear infinite" }}>⟳</span>
-                  Signing in…
+                  Creating…
                 </>
               ) : (
-                <>Sign In</>
+                <>✨ Create Account</>
               )}
             </button>
           </form>
         </div>
 
         <p style={{ textAlign: "center", marginTop: 22, fontSize: 12, color: "var(--text-muted)" }}>
-          Need admin access?{" "}
-          <Link href="/signup" style={{ color: "var(--text-secondary)", fontWeight: 500, textDecoration: "none" }}>
-            Create an account
+          Already have an account?{" "}
+          <Link href="/login" style={{ color: "var(--text-secondary)", fontWeight: 500, textDecoration: "none" }}>
+            Sign in instead
           </Link>
         </p>
       </div>
