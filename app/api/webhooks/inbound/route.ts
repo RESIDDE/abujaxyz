@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: NextRequest) {
   try {
@@ -62,20 +59,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    // Fetch full email body using the Resend Receiving API
-    // (body/headers are NOT included in the webhook payload)
+    // Fetch full email body using the Resend Received Emails API
+    // NOTE: This is a different endpoint from the outbound /emails/{id}
+    // resend.emails.receiving only exists in SDK v4+; we use raw fetch for v3 compatibility
     let bodyHtml = "";
     let bodyText = "";
     try {
-      const { data: receivedEmail, error: fetchError } = await resend.emails.receiving.get(emailId);
-      if (receivedEmail) {
-        console.log("[inbound] receivedEmail keys:", Object.keys(receivedEmail));
-        // Resend may nest content under `body` or return flat html/text fields
-        const r = receivedEmail as any;
-        bodyHtml = r.html || r.body?.html || r.htmlBody || "";
-        bodyText = r.text || r.body?.text || r.textBody || r.plainText || "";
+      const resendRes = await fetch(`https://api.resend.com/emails/received/${emailId}`, {
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+      });
+      if (resendRes.ok) {
+        const resendEmail = await resendRes.json();
+        console.log("[inbound] received email keys:", Object.keys(resendEmail));
+        bodyHtml = resendEmail.html || resendEmail.htmlBody || "";
+        bodyText = resendEmail.text || resendEmail.textBody || resendEmail.plain_text || "";
       } else {
-        console.warn(`[inbound] Could not fetch email body for ${emailId}:`, fetchError);
+        const errText = await resendRes.text();
+        console.warn(`[inbound] Could not fetch body for ${emailId}: ${resendRes.status}`, errText);
       }
     } catch (fetchErr) {
       console.warn("[inbound] Failed to fetch email body:", fetchErr);
