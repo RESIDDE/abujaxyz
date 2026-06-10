@@ -3,9 +3,9 @@
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTheme } from "@/components/ThemeProvider";
-import { Inbox, Star, Send, FileText, Trash2, Mail, Sun, Moon, Edit2, Shield, Users } from "lucide-react";
+import { Inbox, Star, Send, FileText, Trash2, Mail, Sun, Moon, Edit2, Shield, Users, UserCircle, LogOut, ChevronUp } from "lucide-react";
 
 const navItems = [
   { href: "/inbox",   label: "Inbox",   icon: <Inbox size={18} />, folder: "INBOX" },
@@ -22,25 +22,44 @@ interface SidebarProps {
 
 export default function Sidebar({ onCompose, impersonatingUser }: SidebarProps) {
   const [session, setSession] = useState<any>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const [unreadCount, setUnreadCount] = useState(0);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      setAvatarUrl(session?.user?.user_metadata?.avatar || null);
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      setAvatarUrl(session?.user?.user_metadata?.avatar || null);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    if (dropdownOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [dropdownOpen]);
+
+  // Close dropdown on route change
+  useEffect(() => { setDropdownOpen(false); }, [pathname]);
 
   const user = impersonatingUser || session?.user?.user_metadata || session?.user;
   const role = session?.user?.user_metadata?.role;
@@ -136,24 +155,94 @@ export default function Sidebar({ onCompose, impersonatingUser }: SidebarProps) 
         </div>
       )}
 
-      {/* User card */}
-      <div className="sidebar-user">
-        <div
+      {/* User card with dropdown */}
+      <div className="sidebar-user" ref={dropdownRef} style={{ position: "relative" }}>
+
+        {/* Dropdown menu — renders above the card */}
+        {dropdownOpen && !impersonatingUser && (
+          <div style={{
+            position: "absolute",
+            bottom: "calc(100% + 8px)",
+            left: 8,
+            right: 8,
+            background: "var(--glass-bg)",
+            backdropFilter: "var(--glass-blur)",
+            WebkitBackdropFilter: "var(--glass-blur)",
+            border: "1px solid var(--glass-border)",
+            borderRadius: 12,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.24)",
+            overflow: "hidden",
+            zIndex: 100,
+          }}>
+            <Link
+              href="/profile"
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "11px 14px",
+                color: "var(--text-primary)", fontSize: 13, fontWeight: 500,
+                textDecoration: "none",
+                transition: "background 0.12s",
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-tertiary)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+            >
+              <UserCircle size={15} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+              View Profile
+            </Link>
+            <div style={{ height: 1, background: "var(--border)", margin: "0 10px" }} />
+            <button
+              onClick={handleSignOut}
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                width: "100%", padding: "11px 14px",
+                background: "none", border: "none", cursor: "pointer",
+                color: "var(--danger)", fontSize: 13, fontWeight: 500,
+                textAlign: "left", transition: "background 0.12s",
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-tertiary)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+            >
+              <LogOut size={15} style={{ flexShrink: 0 }} />
+              Sign Out
+            </button>
+          </div>
+        )}
+
+        {/* Clickable user card */}
+        <button
           className="sidebar-user-card"
-          onClick={handleSignOut}
-          title="Sign out"
-          role="button"
-          tabIndex={0}
+          onClick={() => !impersonatingUser && setDropdownOpen(o => !o)}
+          style={{
+            width: "100%", background: "none", border: "none",
+            cursor: impersonatingUser ? "default" : "pointer",
+            textAlign: "left",
+          }}
+          aria-haspopup="true"
+          aria-expanded={dropdownOpen}
         >
-          <div className="sidebar-avatar">{initials}</div>
+          <div className="sidebar-avatar" style={{ overflow: "hidden", flexShrink: 0 }}>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} />
+            ) : (
+              initials
+            )}
+          </div>
           <div style={{ overflow: "hidden", flex: 1 }}>
             <div className="sidebar-user-name">{user?.name}</div>
             <div className="sidebar-user-email">{user?.email}</div>
           </div>
-          <span style={{ fontSize: 12, color: "var(--text-muted)", flexShrink: 0 }}>
-            ↪
-          </span>
-        </div>
+          {!impersonatingUser && (
+            <ChevronUp
+              size={14}
+              style={{
+                flexShrink: 0,
+                color: "var(--text-muted)",
+                transition: "transform 0.2s",
+                transform: dropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
+              }}
+            />
+          )}
+        </button>
       </div>
     </aside>
   );

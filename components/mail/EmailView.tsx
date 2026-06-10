@@ -48,13 +48,24 @@ function stringToColor(str: string) {
 export default function EmailView({ emailId, onReply, onClose, impersonating }: EmailViewProps) {
   const [email, setEmail] = useState<Email | null>(null);
   const [loading, setLoading] = useState(false);
+  const [senderAvatar, setSenderAvatar] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!emailId) { setEmail(null); return; }
+    if (!emailId) { setEmail(null); setSenderAvatar(null); return; }
     setLoading(true);
     fetch(`/api/emails/${emailId}`)
       .then(r => r.json())
-      .then(d => { if (!d.error) setEmail(d); setLoading(false); })
+      .then(d => {
+        if (!d.error) {
+          setEmail(d);
+          // Fetch sender avatar
+          fetch(`/api/profile/avatars?emails=${encodeURIComponent(d.fromAddress.toLowerCase())}`)
+            .then(r => r.json())
+            .then(map => setSenderAvatar(map[d.fromAddress.toLowerCase()] || null))
+            .catch(() => {});
+        }
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, [emailId]);
 
@@ -119,9 +130,13 @@ export default function EmailView({ emailId, onReply, onClose, impersonating }: 
         <div className="email-meta">
           <div
             className="email-meta-avatar"
-            style={{ background: stringToColor(email.fromAddress) }}
+            style={senderAvatar ? { overflow: "hidden" } : { background: stringToColor(email.fromAddress) }}
           >
-            {getInitials(email.fromName, email.fromAddress)}
+            {senderAvatar ? (
+              <img src={senderAvatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} />
+            ) : (
+              getInitials(email.fromName, email.fromAddress)
+            )}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>

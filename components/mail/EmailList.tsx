@@ -55,6 +55,7 @@ export default function EmailList({
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEmails, setTotalEmails] = useState(0);
+  const [avatarMap, setAvatarMap] = useState<Record<string, string>>({});
 
   const fetchEmails = useCallback(async () => {
     setLoading(true);
@@ -63,10 +64,20 @@ export default function EmailList({
     if (impersonateUserId) params.set("userId", impersonateUserId);
     const res = await fetch(`/api/emails?${params}`);
     const data = await res.json();
-    setEmails(data.emails || []);
+    const fetched: Email[] = data.emails || [];
+    setEmails(fetched);
     setTotalPages(data.totalPages || 1);
-    setTotalEmails(data.total || data.emails?.length || 0);
+    setTotalEmails(data.total || fetched.length || 0);
     setLoading(false);
+
+    // Fetch avatars for unique sender addresses
+    const uniqueEmails = [...new Set(fetched.map(e => e.fromAddress.toLowerCase()))];
+    if (uniqueEmails.length > 0) {
+      fetch(`/api/profile/avatars?emails=${encodeURIComponent(uniqueEmails.join(","))}`)
+        .then(r => r.json())
+        .then(map => setAvatarMap(prev => ({ ...prev, ...map })))
+        .catch(() => {});
+    }
   }, [folder, page, search, impersonateUserId, refreshKey]);
 
   useEffect(() => { fetchEmails(); }, [fetchEmails]);
@@ -167,9 +178,17 @@ export default function EmailList({
               <div className="email-sender-row">
                 <div
                   className="email-sender-avatar"
-                  style={{ background: stringToColor(email.fromAddress) }}
+                  style={avatarMap[email.fromAddress.toLowerCase()] ? {} : { background: stringToColor(email.fromAddress) }}
                 >
-                  {getInitials(email.fromName, email.fromAddress)}
+                  {avatarMap[email.fromAddress.toLowerCase()] ? (
+                    <img
+                      src={avatarMap[email.fromAddress.toLowerCase()]}
+                      alt=""
+                      style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+                    />
+                  ) : (
+                    getInitials(email.fromName, email.fromAddress)
+                  )}
                 </div>
                 <span className="email-from">
                   {email.fromName || email.fromAddress.split("@")[0]}
