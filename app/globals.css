@@ -192,7 +192,20 @@ body::before {
   overflow-x: hidden;
   position: relative;
   z-index: 10;
-  transition: background 0.3s;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              background 0.3s;
+}
+
+.sidebar-collapsed {
+  width: 60px;
+  min-width: 60px;
+}
+
+.sidebar-item-collapsed {
+  justify-content: center;
+  padding: 9px 0;
+  margin: 1px 8px;
 }
 
 /* Sidebar shimmer line */

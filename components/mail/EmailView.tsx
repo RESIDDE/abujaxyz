@@ -144,7 +144,10 @@ export default function EmailView({ emailId, onReply, onClose, impersonating }: 
                 {email.fromName || email.fromAddress.split("@")[0]}
               </div>
               <div className="email-meta-time">
-                {format(new Date(email.sentAt), "MMM d, yyyy 'at' h:mm a")}
+                {new Intl.DateTimeFormat(undefined, {
+                  month: "short", day: "numeric", year: "numeric",
+                  hour: "numeric", minute: "2-digit", hour12: true,
+                }).format(new Date(email.sentAt))}
               </div>
             </div>
             <div className="email-meta-addr">&lt;{email.fromAddress}&gt;</div>

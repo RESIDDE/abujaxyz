@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: NextRequest) {
   try {
@@ -59,19 +62,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    // Fetch full email body from Resend API (body is not inlined in the webhook)
+    // Fetch full email body using the Resend Receiving API
+    // (body/headers are NOT included in the webhook payload)
     let bodyHtml = "";
     let bodyText = "";
     try {
-      const resendRes = await fetch(`https://api.resend.com/emails/${emailId}`, {
-        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
-      });
-      if (resendRes.ok) {
-        const resendEmail = await resendRes.json();
-        bodyHtml = resendEmail.html || "";
-        bodyText = resendEmail.text || "";
+      const { data: receivedEmail, error: fetchError } = await resend.emails.receiving.get(emailId);
+      if (receivedEmail) {
+        console.log("[inbound] receivedEmail keys:", Object.keys(receivedEmail));
+        // Resend may nest content under `body` or return flat html/text fields
+        const r = receivedEmail as any;
+        bodyHtml = r.html || r.body?.html || r.htmlBody || "";
+        bodyText = r.text || r.body?.text || r.textBody || r.plainText || "";
       } else {
-        console.warn(`[inbound] Could not fetch email body for ${emailId}:`, resendRes.status);
+        console.warn(`[inbound] Could not fetch email body for ${emailId}:`, fetchError);
       }
     } catch (fetchErr) {
       console.warn("[inbound] Failed to fetch email body:", fetchErr);

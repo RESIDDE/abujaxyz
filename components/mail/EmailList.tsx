@@ -26,9 +26,9 @@ interface EmailListProps {
 
 function formatDate(dateStr: string) {
   const d = new Date(dateStr);
-  if (isToday(d)) return format(d, "h:mm a");
+  if (isToday(d)) return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit", hour12: true }).format(d);
   if (isYesterday(d)) return "Yesterday";
-  return format(d, "MMM d");
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(d);
 }
 
 function getInitials(name: string | null, email: string) {

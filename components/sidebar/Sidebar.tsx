@@ -5,14 +5,17 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "@/components/ThemeProvider";
-import { Inbox, Star, Send, FileText, Trash2, Mail, Sun, Moon, Edit2, Shield, Users, UserCircle, LogOut, ChevronUp } from "lucide-react";
+import {
+  Inbox, Star, Send, FileText, Trash2, Mail, Sun, Moon,
+  Edit2, Shield, Users, UserCircle, LogOut, ChevronUp, PanelLeftClose, PanelLeftOpen,
+} from "lucide-react";
 
 const navItems = [
-  { href: "/inbox",   label: "Inbox",   icon: <Inbox size={18} />, folder: "INBOX" },
-  { href: "/starred", label: "Starred", icon: <Star size={18} />, folder: "STARRED" },
-  { href: "/sent",    label: "Sent",    icon: <Send size={18} />, folder: "SENT" },
+  { href: "/inbox",   label: "Inbox",   icon: <Inbox size={18} />,    folder: "INBOX" },
+  { href: "/starred", label: "Starred", icon: <Star size={18} />,     folder: "STARRED" },
+  { href: "/sent",    label: "Sent",    icon: <Send size={18} />,     folder: "SENT" },
   { href: "/drafts",  label: "Drafts",  icon: <FileText size={18} />, folder: "DRAFT" },
-  { href: "/trash",   label: "Trash",   icon: <Trash2 size={18} />, folder: "TRASH" },
+  { href: "/trash",   label: "Trash",   icon: <Trash2 size={18} />,   folder: "TRASH" },
 ];
 
 interface SidebarProps {
@@ -24,6 +27,7 @@ export default function Sidebar({ onCompose, impersonatingUser }: SidebarProps) 
   const [session, setSession] = useState<any>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
@@ -81,36 +85,56 @@ export default function Sidebar({ onCompose, impersonatingUser }: SidebarProps) 
   };
 
   return (
-    <aside className={`sidebar ${role === "SUPERADMIN" && !impersonatingUser ? "admin-sidebar" : ""}`}>
-      {/* Logo + theme toggle */}
+    <aside className={`sidebar ${role === "SUPERADMIN" && !impersonatingUser ? "admin-sidebar" : ""} ${collapsed ? "sidebar-collapsed" : ""}`}>
+      {/* Logo + collapse + theme toggle */}
       <div className="sidebar-logo">
-        <div className="sidebar-logo-icon">
+        <div className="sidebar-logo-icon" style={{ flexShrink: 0 }}>
           <Mail size={20} color="var(--bg-base)" />
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="sidebar-logo-text">AbujaCarsMail</div>
-          <div className="sidebar-logo-sub">@abujacars.com</div>
+        {!collapsed && (
+          <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+            <div className="sidebar-logo-text">AbujaCarsMail</div>
+            <div className="sidebar-logo-sub">@abujacars.com</div>
+          </div>
+        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: collapsed ? "auto" : 0 }}>
+          {!collapsed && (
+            <button
+              className="theme-toggle"
+              onClick={toggleTheme}
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              aria-label="Toggle theme"
+            >
+              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+          )}
+          <button
+            className="theme-toggle"
+            onClick={() => setCollapsed(c => !c)}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label="Toggle sidebar"
+          >
+            {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          </button>
         </div>
-        <button
-          className="theme-toggle"
-          onClick={toggleTheme}
-          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          aria-label="Toggle theme"
-        >
-          {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-        </button>
       </div>
 
       {!impersonatingUser && (
-        <button id="compose-btn" className="compose-btn" onClick={onCompose}>
+        <button
+          id="compose-btn"
+          className="compose-btn"
+          onClick={onCompose}
+          title={collapsed ? "Compose" : undefined}
+          style={collapsed ? { padding: "11px", justifyContent: "center" } : {}}
+        >
           <Edit2 size={16} />
-          <span>Compose</span>
+          {!collapsed && <span>Compose</span>}
         </button>
       )}
 
       {/* Mail navigation */}
       <div className="sidebar-section">
-        <div className="sidebar-section-title">Mail</div>
+        {!collapsed && <div className="sidebar-section-title">Mail</div>}
         {navItems.map(item => {
           const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
           return (
@@ -119,13 +143,19 @@ export default function Sidebar({ onCompose, impersonatingUser }: SidebarProps) 
               href={impersonatingUser
                 ? `/admin/impersonate/${session?.user?.id}${item.href}`
                 : item.href}
-              className={`sidebar-item ${isActive ? "active" : ""}`}
+              className={`sidebar-item ${isActive ? "active" : ""} ${collapsed ? "sidebar-item-collapsed" : ""}`}
               id={`nav-${item.folder.toLowerCase()}`}
+              title={collapsed ? item.label : undefined}
             >
               <span className="sidebar-item-icon">{item.icon}</span>
-              <span>{item.label}</span>
-              {item.folder === "INBOX" && unreadCount > 0 && (
+              {!collapsed && <span>{item.label}</span>}
+              {!collapsed && item.folder === "INBOX" && unreadCount > 0 && (
                 <span className="badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
+              )}
+              {collapsed && item.folder === "INBOX" && unreadCount > 0 && (
+                <span className="badge" style={{ position: "absolute", top: 4, right: 4, minWidth: 14, fontSize: 8, padding: "1px 3px" }}>
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
               )}
             </Link>
           );
@@ -135,22 +165,24 @@ export default function Sidebar({ onCompose, impersonatingUser }: SidebarProps) 
       {/* Admin navigation */}
       {role === "SUPERADMIN" && !impersonatingUser && (
         <div className="sidebar-section">
-          <div className="sidebar-section-title">Admin</div>
+          {!collapsed && <div className="sidebar-section-title">Admin</div>}
           <Link
             href="/admin"
-            className={`sidebar-item ${pathname === "/admin" ? "active" : ""}`}
+            className={`sidebar-item ${pathname === "/admin" ? "active" : ""} ${collapsed ? "sidebar-item-collapsed" : ""}`}
             id="nav-admin"
+            title={collapsed ? "Dashboard" : undefined}
           >
             <span className="sidebar-item-icon"><Shield size={18} /></span>
-            <span>Dashboard</span>
+            {!collapsed && <span>Dashboard</span>}
           </Link>
           <Link
             href="/admin/users"
-            className={`sidebar-item ${pathname === "/admin/users" ? "active" : ""}`}
+            className={`sidebar-item ${pathname === "/admin/users" ? "active" : ""} ${collapsed ? "sidebar-item-collapsed" : ""}`}
             id="nav-admin-users"
+            title={collapsed ? "Users" : undefined}
           >
             <span className="sidebar-item-icon"><Users size={18} /></span>
-            <span>Users</span>
+            {!collapsed && <span>Users</span>}
           </Link>
         </div>
       )}
@@ -211,14 +243,16 @@ export default function Sidebar({ onCompose, impersonatingUser }: SidebarProps) 
         {/* Clickable user card */}
         <button
           className="sidebar-user-card"
-          onClick={() => !impersonatingUser && setDropdownOpen(o => !o)}
+          onClick={() => !impersonatingUser && (collapsed ? setCollapsed(false) : setDropdownOpen(o => !o))}
           style={{
             width: "100%", background: "none", border: "none",
             cursor: impersonatingUser ? "default" : "pointer",
             textAlign: "left",
+            justifyContent: collapsed ? "center" : undefined,
           }}
           aria-haspopup="true"
           aria-expanded={dropdownOpen}
+          title={collapsed ? (user?.name || "Account") : undefined}
         >
           <div className="sidebar-avatar" style={{ overflow: "hidden", flexShrink: 0 }}>
             {avatarUrl ? (
@@ -227,20 +261,24 @@ export default function Sidebar({ onCompose, impersonatingUser }: SidebarProps) 
               initials
             )}
           </div>
-          <div style={{ overflow: "hidden", flex: 1 }}>
-            <div className="sidebar-user-name">{user?.name}</div>
-            <div className="sidebar-user-email">{user?.email}</div>
-          </div>
-          {!impersonatingUser && (
-            <ChevronUp
-              size={14}
-              style={{
-                flexShrink: 0,
-                color: "var(--text-muted)",
-                transition: "transform 0.2s",
-                transform: dropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
-              }}
-            />
+          {!collapsed && (
+            <>
+              <div style={{ overflow: "hidden", flex: 1 }}>
+                <div className="sidebar-user-name">{user?.name}</div>
+                <div className="sidebar-user-email">{user?.email}</div>
+              </div>
+              {!impersonatingUser && (
+                <ChevronUp
+                  size={14}
+                  style={{
+                    flexShrink: 0,
+                    color: "var(--text-muted)",
+                    transition: "transform 0.2s",
+                    transform: dropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
+                  }}
+                />
+              )}
+            </>
           )}
         </button>
       </div>
