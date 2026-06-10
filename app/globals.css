@@ -208,6 +208,26 @@ body::before {
   margin: 1px 8px;
 }
 
+/* Prominent expand button shown when sidebar is collapsed */
+.sidebar-expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sidebar-expand-btn:hover {
+  background: var(--bg-active);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
 /* Sidebar shimmer line */
 .sidebar::after {
   content: '';

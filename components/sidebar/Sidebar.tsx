@@ -86,19 +86,30 @@ export default function Sidebar({ onCompose, impersonatingUser }: SidebarProps) 
 
   return (
     <aside className={`sidebar ${role === "SUPERADMIN" && !impersonatingUser ? "admin-sidebar" : ""} ${collapsed ? "sidebar-collapsed" : ""}`}>
-      {/* Logo + collapse + theme toggle */}
-      <div className="sidebar-logo">
-        <div className="sidebar-logo-icon" style={{ flexShrink: 0 }}>
-          <Mail size={20} color="var(--bg-base)" />
+
+      {collapsed ? (
+        /* ── Collapsed header: centred expand button ── */
+        <div className="sidebar-logo" style={{ justifyContent: "center", padding: "16px 0" }}>
+          <button
+            className="sidebar-expand-btn"
+            onClick={() => setCollapsed(false)}
+            title="Expand sidebar"
+            aria-label="Expand sidebar"
+          >
+            <PanelLeftOpen size={18} />
+          </button>
         </div>
-        {!collapsed && (
+      ) : (
+        /* ── Expanded header: logo + theme + collapse ── */
+        <div className="sidebar-logo">
+          <div className="sidebar-logo-icon" style={{ flexShrink: 0 }}>
+            <Mail size={20} color="var(--bg-base)" />
+          </div>
           <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
             <div className="sidebar-logo-text">AbujaCarsMail</div>
             <div className="sidebar-logo-sub">@abujacars.com</div>
           </div>
-        )}
-        <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: collapsed ? "auto" : 0 }}>
-          {!collapsed && (
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <button
               className="theme-toggle"
               onClick={toggleTheme}
@@ -107,17 +118,18 @@ export default function Sidebar({ onCompose, impersonatingUser }: SidebarProps) 
             >
               {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             </button>
-          )}
-          <button
-            className="theme-toggle"
-            onClick={() => setCollapsed(c => !c)}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-label="Toggle sidebar"
-          >
-            {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-          </button>
+            <button
+              className="theme-toggle"
+              onClick={() => setCollapsed(true)}
+              title="Collapse sidebar"
+              aria-label="Collapse sidebar"
+            >
+              <PanelLeftClose size={16} />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
+
 
       {!impersonatingUser && (
         <button
