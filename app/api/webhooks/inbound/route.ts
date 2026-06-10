@@ -59,20 +59,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    // Fetch full email body using the Resend Received Emails API
-    // NOTE: This is a different endpoint from the outbound /emails/{id}
-    // resend.emails.receiving only exists in SDK v4+; we use raw fetch for v3 compatibility
+    // Fetch full email body from Resend Receiving API
+    // Correct endpoint: GET /emails/receiving/:email_id
+    // html is returned as a base64 data URI by default — must decode it
     let bodyHtml = "";
     let bodyText = "";
     try {
-      const resendRes = await fetch(`https://api.resend.com/emails/received/${emailId}`, {
+      const resendRes = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
         headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
       });
       if (resendRes.ok) {
         const resendEmail = await resendRes.json();
         console.log("[inbound] received email keys:", Object.keys(resendEmail));
-        bodyHtml = resendEmail.html || resendEmail.htmlBody || "";
-        bodyText = resendEmail.text || resendEmail.textBody || resendEmail.plain_text || "";
+        console.log("[inbound] html_format:", resendEmail.html_format);
+
+        // html is a base64 data URI like "data:text/html;base64,..."
+        const rawHtml: string = resendEmail.html || "";
+        if (rawHtml.startsWith("data:")) {
+          const base64 = rawHtml.split(",")[1] || "";
+          bodyHtml = Buffer.from(base64, "base64").toString("utf-8");
+        } else {
+          bodyHtml = rawHtml;
+        }
+
+        bodyText = resendEmail.text || "";
       } else {
         const errText = await resendRes.text();
         console.warn(`[inbound] Could not fetch body for ${emailId}: ${resendRes.status}`, errText);
