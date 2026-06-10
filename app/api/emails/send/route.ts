@@ -10,9 +10,9 @@ const sendSchema = z.object({
   subject: z.string().min(1),
   bodyHtml: z.string(),
   bodyText: z.string().optional().default(""),
-  threadId: z.string().optional(),
-  replyToMessageId: z.string().optional(),
-  draftId: z.string().optional(),
+  threadId: z.string().nullable().optional().transform(v => v ?? undefined),
+  replyToMessageId: z.string().nullable().optional().transform(v => v ?? undefined),
+  draftId: z.string().nullable().optional().transform(v => v ?? undefined),
 });
 
 export async function POST(req: NextRequest) {
