@@ -98,14 +98,23 @@ export async function POST(req: NextRequest) {
       resolvedThreadId = thread.id;
     }
 
-    // Save to SENT folder
-    const { data: email, error: emailError } = await supabase
+    // --- Build admin client once (bypasses RLS) ---
+    const { createClient: createAdminClient } = await import("@supabase/supabase-js");
+    const supabaseAdmin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+    );
+
+    const now = new Date().toISOString();
+
+    // Save to SENT folder (use admin client to bypass RLS)
+    const { data: email, error: emailError } = await supabaseAdmin
       .from('Email')
       .insert({
         id: crypto.randomUUID(),
-        messageId: result.data?.id,
-        fromAddress: user.email,
-        fromName: user.name,
+        messageId: result.data?.id,   // unique Resend ID — only on the SENT copy
+        fromAddress: user!.email,
+        fromName: user!.name,
         toAddresses: JSON.stringify(to),
         ccAddresses: JSON.stringify(cc),
         bccAddresses: JSON.stringify(bcc),
@@ -114,35 +123,32 @@ export async function POST(req: NextRequest) {
         bodyText,
         folder: "SENT",
         isRead: true,
-        userId: user.id,
+        userId: user!.id,
         threadId: resolvedThreadId,
+        sentAt: now,
       })
       .select()
       .single();
 
-    if (emailError) throw new Error(emailError.message);
+    if (emailError) throw new Error("SENT insert failed: " + emailError.message);
 
     // --- Internal Delivery ---
-    // If any recipients are registered users, deliver directly to their INBOX
+    // If any recipients are registered users, deliver directly to their INBOX.
+    // NOTE: inbox rows get a null messageId to avoid the UNIQUE constraint.
     const allRecipients = [...to, ...cc, ...bcc].map(e => e.toLowerCase().trim().replace(/[<>]/g, ""));
-    const { createClient: createAdminClient } = await import("@supabase/supabase-js");
-    const supabaseAdmin = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-    );
     
     const { data: internalUsers } = await supabaseAdmin
       .from('User')
       .select('id, email')
       .in('email', allRecipients)
-      .neq('isActive', false); // include null (newly created users) and true
+      .neq('isActive', false); // include null and true
 
     if (internalUsers && internalUsers.length > 0) {
       const internalInserts = internalUsers.map(internalUser => ({
         id: crypto.randomUUID(),
-        messageId: result.data?.id,
-        fromAddress: user.email,
-        fromName: user.name,
+        messageId: null,              // no unique constraint conflict
+        fromAddress: user!.email,
+        fromName: user!.name,
         toAddresses: JSON.stringify(to),
         ccAddresses: JSON.stringify(cc),
         bccAddresses: JSON.stringify(bcc),
@@ -153,13 +159,16 @@ export async function POST(req: NextRequest) {
         isRead: false,
         userId: internalUser.id,
         threadId: resolvedThreadId,
-        updatedAt: new Date().toISOString()
+        sentAt: now,
       }));
       
       const { error: internalError } = await supabaseAdmin.from('Email').insert(internalInserts);
       if (internalError) console.error("Internal delivery failed:", internalError);
       else console.log(`Internally delivered to ${internalUsers.length} inboxes`);
+    } else {
+      console.log("No internal recipients found for:", allRecipients);
     }
+
 
     // Delete draft if it was sent from one
     if (draftId) {
